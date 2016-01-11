@@ -18,16 +18,21 @@ public class ProfilerWorker {
 
     public ProfilerWorker() {
         masterInfo = new MasterInfo();
-        masterInfo.setPath("akka.tcp://profiler-master@127.0.0.1:2554/user/profiler-master");
-        masterInfo.setIp(ProcessInfo.Path2IpAddress(masterInfo.getPath()));
+
 
     }
 
     public void init() {
 
         Config config = ConfigFactory.load("profiler-worker");
-        int port = (new Random()).nextInt(4000) + 8000;
+        int port = config.getInt("akka.profiler.worker.port");
+        port = (new Random()).nextInt(4000)+4000;
         config = config.withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(port));
+
+        int masterPort = config.getInt("akka.profiler.master.port");
+        String masterIp = config.getString("akka.profiler.master.ip");
+        masterInfo.setPath(String.format("akka.tcp://profiler-master@%s:%s/user/profiler-master", masterIp, masterPort));
+        masterInfo.setIp(ProcessInfo.Path2IpAddress(masterInfo.getPath()));
 
         final ActorSystem system = ActorSystem.create("profiler-worker", config);
         system.actorOf(Props.create(WorkerAssistant.class, this), "profiler-worker");

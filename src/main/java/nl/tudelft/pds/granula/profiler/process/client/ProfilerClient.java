@@ -36,6 +36,8 @@ public class ProfilerClient {
         masterInfo.setPath(String.format("akka.tcp://profiler-master@%s:%s/user/profiler-master", masterIp, masterPort));
         masterInfo.setIp(ProcessInfo.Path2IpAddress(masterInfo.getPath()));
 
+        port = config.getInt("akka.profiler.client.port");
+        port = (new Random()).nextInt(4000)+4000;
         config = config.withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(port));
         final ActorSystem system = ActorSystem.create("profiler-client", config);
         system.actorOf(Props.create(ClientAssistant.class, this), "profiler-client");

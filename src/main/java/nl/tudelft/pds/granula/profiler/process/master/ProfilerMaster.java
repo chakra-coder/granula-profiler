@@ -5,15 +5,13 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 import nl.tudelft.pds.granula.profiler.comm.message.HealthResponse;
 import nl.tudelft.pds.granula.profiler.comm.message.RegisterRequest;
 import nl.tudelft.pds.granula.profiler.comm.message.ActorId;
 import nl.tudelft.pds.granula.profiler.process.ProcessInfo;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class ProfilerMaster {
@@ -29,8 +27,11 @@ public class ProfilerMaster {
         workers = new HashMap<>();
 
         Config config = ConfigFactory.load("profiler-master");
-        final ActorSystem system = ActorSystem.create("profiler-master",ConfigFactory.load("profiler-master"));
-        final String path = "akka.tcp://ProfilerMaster@127.0.0.1:2552/user/profiler-master";
+        int port = config.getInt("akka.profiler.master.port");
+        String ip = config.getString("akka.profiler.master.ip");
+        config = config.withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(port));
+        config = config.withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(ip));
+        final ActorSystem system = ActorSystem.create("profiler-master",config);
         final ActorRef master = system.actorOf(Props.create(MasterAssistant.class, this), "profiler-master");
 
         System.out.println("Started Profiler Master");
