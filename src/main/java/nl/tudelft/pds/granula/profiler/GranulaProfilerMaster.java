@@ -3,11 +3,11 @@ package nl.tudelft.pds.granula.profiler;
 import nl.tudelft.pds.granula.profiler.process.master.ProfilerMaster;
 import nl.tudelft.pds.granula.profiler.process.worker.ProfilerWorker;
 
-public class GranulaProfiler {
+public class GranulaProfilerMaster {
 
     public static void main(String[] args) {
         startProfilerMaster();
-        startProfilerWorker();
+//        startProfilerWorker();
     }
 
 

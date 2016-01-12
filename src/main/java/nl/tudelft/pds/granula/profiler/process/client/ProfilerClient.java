@@ -71,6 +71,9 @@ public class ProfilerClient {
                 case "exit":
                     System.out.println("Exiting");
                     System.exit(0);
+                case "stopWeb":
+                    cAssistant.sendTerminateWebApiRequest();
+                    break;
                 default:
                     System.out.println("\"" + s + "\" is not a valid command");
                     break;

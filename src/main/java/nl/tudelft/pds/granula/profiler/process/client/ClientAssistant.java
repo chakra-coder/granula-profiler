@@ -28,9 +28,16 @@ public class ClientAssistant extends UntypedActor {
         if (message instanceof ClientHealthResponse) {
             ClientHealthResponse clientHealthResponse = (ClientHealthResponse) message;
             System.out.println(clientHealthResponse.getMessage());
+        } else if (message instanceof ClientTerminateRESTfulResponse) {
+            ClientTerminateRESTfulResponse clientTerminateRESTfulResponse = (ClientTerminateRESTfulResponse) message;
+            System.out.println(clientTerminateRESTfulResponse.getMessage());
         } else {
             unhandled(message);
         }
     }
 
+    public void sendTerminateWebApiRequest() {
+        String path = profilerClient.getMasterInfo().getPath();
+        getContext().actorSelection(path).tell(new ClientTerminateRESTFULRequest(), getSelf());
+    }
 }

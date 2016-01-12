@@ -2,8 +2,10 @@ package nl.tudelft.pds.granula.profiler;
 
 import nl.tudelft.pds.granula.profiler.process.master.ProfilerMaster;
 import nl.tudelft.pds.granula.profiler.process.worker.ProfilerWorker;
+import nl.tudelft.pds.granula.profiler.process.worker.WorkerAssistant;
 
 public class GranulaProfilerWorker {
+
 
     public static void main(String[] args) {
         startProfilerWorker();
@@ -19,11 +21,12 @@ public class GranulaProfilerWorker {
 
     public static void startProfilerWorker() {
 
-        int workerSize = 3;
+        int workerSize = 1;
         for (int i = 0; i < workerSize; i++) {
             ProfilerWorker profilerWorker = new ProfilerWorker();
             profilerWorker.init();
         }
 
     }
+
 }

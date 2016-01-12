@@ -1,5 +1,6 @@
-package nl.tudelft.pds.granula.profiler;
+package nl.tudelft.pds.granula.profiler.backup;
 
+import nl.tudelft.pds.granula.profiler.Contact;
 import ro.pippo.core.Application;
 import ro.pippo.core.Pippo;
 
