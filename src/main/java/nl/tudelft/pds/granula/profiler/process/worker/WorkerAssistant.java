@@ -85,7 +85,7 @@ public class WorkerAssistant extends UntypedActor {
         System.out.println("execute this."+ id + metrics);
     }
 
-    public void monitor(String jobId, int processId, String metric, int frequency, int duration) {
-        profilerWorker.monitor(jobId, processId, metric, frequency, duration);
+    public void monitor(String jobId, int processId, String metric, int interval, int duration) {
+        profilerWorker.monitor(jobId, processId, metric, interval, duration);
     }
 }

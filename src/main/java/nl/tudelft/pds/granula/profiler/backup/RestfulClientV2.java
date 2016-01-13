@@ -13,7 +13,15 @@ public class RestfulClientV2 {
 
     public static void main(String[] args) throws Exception {
         RestfulClientV2 restfulClient = new RestfulClientV2();
-        restfulClient.monitorProcess(2974, "cputime", 100, 20);
+        restfulClient.monitorProcess("random_job_1", 2974, "process.cpu.time", 1000, 10000);
+        restfulClient.monitorProcess("random_job_1", 2974, "os.network.volume", 1000, 10000);
+
+        Thread.sleep(5000);
+        restfulClient.monitorProcess("random_job_1", 2974, "process.cpu.time", 100, 10000);
+        restfulClient.monitorProcess("random_job_1", 2974, "os.network.volume", 100, 10000);
+        Thread.sleep(5000);
+        restfulClient.monitorProcess("random_job_1", 2974, "process.cpu.time", 1000, 10000);
+        restfulClient.monitorProcess("random_job_1", 2974, "os.network.volume", 1000, 10000);
     }
 
 
@@ -30,14 +38,15 @@ public class RestfulClientV2 {
     }
 
 
-    public void monitorProcess(int processId, String metric, int frequency, int duration) {
+    public void monitorProcess(String jobId, int processId, String metric, int interval, int duration) {
 
         try {
             HttpResponse<JsonNode> jsonResponse =
                     Unirest.get(path + "/monitor-process?"
-                            +  "processId=" + processId
+                            + "jobId=" + jobId
+                            + "&" + "processId=" + processId
                             + "&" + "metric=" + metric
-                            + "&" + "frequency=" + frequency
+                            + "&" + "interval=" + interval
                             + "&" + "duration=" + duration
                     ).asJson();
         } catch (Exception e) {

@@ -29,11 +29,11 @@ public class RestfulWorkerAssistant extends Application {
             String jobId = routeContext.getParameter("jobId").toString();
             int processId = routeContext.getParameter("processId").toInt();
             String metric = routeContext.getParameter("metric").toString();
-            int frequency = routeContext.getParameter("frequency").toInt();
+            int interval = routeContext.getParameter("interval").toInt();
             int duration = routeContext.getParameter("duration").toInt();
             RestfulResponse restfulResponse = new RestfulResponse("monitoring process");
             Contact contact = Contact.createContact();
-            workerAssistant.monitor(jobId, processId, metric, frequency, duration);
+            workerAssistant.monitor(jobId, processId, metric, interval, duration);
             routeContext.json().send(contact);
         });
     }

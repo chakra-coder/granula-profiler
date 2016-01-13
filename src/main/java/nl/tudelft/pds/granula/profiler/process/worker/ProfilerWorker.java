@@ -1,27 +1,25 @@
 package nl.tudelft.pds.granula.profiler.process.worker;
 
 
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 import nl.tudelft.pds.granula.profiler.process.ProcessInfo;
-import nl.tudelft.pds.granula.profiler.util.PortChecker;
 
-import java.net.BindException;
-import java.util.Random;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ProfilerWorker {
 
+    public static ActorSystem actorSystem;
     MasterInfo masterInfo;
     WorkerAssistant wAssistant;
+    Map<String, JobMonitor> jobMonitors;
 
     public ProfilerWorker() {
         masterInfo = new MasterInfo();
-
-
     }
 
     public void init() {
@@ -36,8 +34,10 @@ public class ProfilerWorker {
         masterInfo.setPath(String.format("akka.tcp://profiler-master@%s:%s/user/profiler-master", masterIp, masterPort));
         masterInfo.setIp(ProcessInfo.Path2IpAddress(masterInfo.getPath()));
 
-        final ActorSystem system = ActorSystem.create("profiler-worker", config);
-        system.actorOf(Props.create(WorkerAssistant.class, this), "profiler-worker");
+        actorSystem = ActorSystem.create("profiler-worker", config);
+        actorSystem.actorOf(Props.create(WorkerAssistant.class, this), "profiler-worker");
+
+        jobMonitors = new HashMap<>();
 
     }
 
@@ -53,14 +53,22 @@ public class ProfilerWorker {
         this.masterInfo = masterInfo;
     }
 
-    public void monitor(String jobId, int processId, String metric, int interval, int duration) {
-        String targetPath = String.format("/proc/%s/stat", processId);
-        System.out.println("hi");
-        long stopTime = System.currentTimeMillis() + duration * 1000;
-        CpuMetricCollector cpuMetricCollector = new CpuMetricCollector(targetPath, interval, stopTime);
-        cpuMetricCollector.open();
-        // 0.11ms for 1000 iteration (this operation is repeated per monitoring interval. open() and close() once is not more efficient.
-        cpuMetricCollector.collect();
+    private JobMonitor getOrCreateJobMonitor(String jobId) {
+        if(jobMonitors.containsKey(jobId)) {
+            return jobMonitors.get(jobId);
+        } else {
+            JobMonitor jobMonitor = new JobMonitor(jobId);
+            jobMonitor.start();
+            jobMonitors.put(jobId, jobMonitor);
+            return jobMonitor;
+        }
+    }
 
+    public void monitor(String jobId, int processId, String metric, int interval, int duration) {
+        System.out.println("hi" + System.currentTimeMillis());
+        JobMonitor jobMonitor = getOrCreateJobMonitor(jobId);
+        jobMonitor.monitor(processId, metric, interval, duration);
+
+        System.out.println("hi again");
     }
 }
