@@ -8,7 +8,7 @@ import java.util.List;
 public class CpuMetricCollector extends  SystemMetricCollector{
     long kernelClockTick;
     int count = 0;
-    List<Double> cpuTime;
+    List<Double> cpuTimes;
 
     double cpuTimePrevious = 0;
     double cpuTimeCurrent = 0;
@@ -21,7 +21,7 @@ public class CpuMetricCollector extends  SystemMetricCollector{
     @Override
     public void open() {
         super.open();
-        cpuTime = new ArrayList<>();
+        cpuTimes = new ArrayList<>();
         // 140ms for first iteration (this operation is only executed once per process
         kernelClockTick = Long.parseLong(collectFromExecution("getconf", "CLK_TCK"));
     }
@@ -31,7 +31,7 @@ public class CpuMetricCollector extends  SystemMetricCollector{
         String[] procMetrics = reader.readLine().split(" ");
         cpuTimePrevious = cpuTimeCurrent;
         cpuTimeCurrent = calculateCpuTime(procMetrics);
-        cpuTime.add(cpuTimeCurrent);
+        cpuTimes.add(cpuTimeCurrent);
         cpuTimeDiff = cpuTimeCurrent - cpuTimePrevious;
         System.out.println(cpuTimeCurrent);
         count++;

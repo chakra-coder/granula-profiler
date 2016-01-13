@@ -13,7 +13,7 @@ public class RestfulClientV2 {
 
     public static void main(String[] args) throws Exception {
         RestfulClientV2 restfulClient = new RestfulClientV2();
-        restfulClient.monitorProcess(5153, "cputime");
+        restfulClient.monitorProcess(2974, "cputime", 100, 20);
     }
 
 
@@ -30,11 +30,16 @@ public class RestfulClientV2 {
     }
 
 
-    public void monitorProcess(int processId, String metric) {
+    public void monitorProcess(int processId, String metric, int frequency, int duration) {
 
         try {
             HttpResponse<JsonNode> jsonResponse =
-                    Unirest.get(path + "/monitor-process?" +  "processId=" + processId + "&" + "metric=" + metric).asJson();
+                    Unirest.get(path + "/monitor-process?"
+                            +  "processId=" + processId
+                            + "&" + "metric=" + metric
+                            + "&" + "frequency=" + frequency
+                            + "&" + "duration=" + duration
+                    ).asJson();
         } catch (Exception e) {
             e.printStackTrace();
         }

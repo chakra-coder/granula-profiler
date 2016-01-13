@@ -53,7 +53,14 @@ public class ProfilerWorker {
         this.masterInfo = masterInfo;
     }
 
-    public void monitor(int processId, String metric) {
-        Monitor.monitor(processId, metric);
+    public void monitor(String jobId, int processId, String metric, int interval, int duration) {
+        String targetPath = String.format("/proc/%s/stat", processId);
+        System.out.println("hi");
+        long stopTime = System.currentTimeMillis() + duration * 1000;
+        CpuMetricCollector cpuMetricCollector = new CpuMetricCollector(targetPath, interval, stopTime);
+        cpuMetricCollector.open();
+        // 0.11ms for 1000 iteration (this operation is repeated per monitoring interval. open() and close() once is not more efficient.
+        cpuMetricCollector.collect();
+
     }
 }
