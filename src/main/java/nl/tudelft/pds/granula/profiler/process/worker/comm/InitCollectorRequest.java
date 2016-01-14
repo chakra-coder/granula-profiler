@@ -5,9 +5,20 @@ import nl.tudelft.pds.granula.profiler.comm.message.Request;
 /**
  * Created by wlngai on 1/9/16.
  */
-public class StartCollectorRequest implements Request {
+public class InitCollectorRequest implements Request {
 
-    public StartCollectorRequest() {
+    int processId;
+
+    public int getProcessId() {
+        return processId;
+    }
+
+    public void setProcessId(int processId) {
+        this.processId = processId;
+    }
+
+    public InitCollectorRequest(int processId) {
+        this.processId = processId;
     }
 
     String message;

@@ -4,23 +4,21 @@ package nl.tudelft.pds.granula.profiler.process.worker;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
-import nl.tudelft.pds.granula.profiler.process.ProcessInfo;
-import nl.tudelft.pds.granula.profiler.process.worker.comm.StartCollectorRequest;
-import nl.tudelft.pds.granula.profiler.process.worker.comm.StopCollectorRequest;
+import nl.tudelft.pds.granula.profiler.process.worker.comm.*;
+import nl.tudelft.pds.granula.profiler.util.TimeUtility;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ProcessMonitor {
-    Map<String, Class> collectorDefinitions;
-    Map<String, ActorRef> collectors;
 
     int processId;
+    Map<String, Class> collectorDefinitions;
+    Map<String, ActorRef> collectors;
+    boolean isInit;
 
     public ProcessMonitor(int processId) {
         this.processId = processId;
@@ -32,30 +30,46 @@ public class ProcessMonitor {
         config = config.withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(port));
         ProfilerWorker.actorSystem = ActorSystem.create("profiler-worker", config);
 
-        ProcessMonitor processMonitor = new ProcessMonitor(2974);
+        ProcessMonitor processMonitor = new ProcessMonitor(16495);
+        processMonitor.init();
+        processMonitor.configure("process.cpu.time", 1000);
+        processMonitor.configure("os.network.volume", 1000);
         processMonitor.start();
-        processMonitor.monitor("process.cpu.time", 1000, 100000);
-        processMonitor.monitor("os.network.volume", 1000, 100000);
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        TimeUtility.Pause(2000);
         processMonitor.stop();
+        processMonitor.configure("process.cpu.time", 100);
+        processMonitor.configure("os.network.volume", 100);
+        TimeUtility.Pause(2000);
+        processMonitor.start();
+        TimeUtility.Pause(2000);
+        processMonitor.stop();
+        processMonitor.kill();
+        processMonitor.start();
+    }
+
+    public void init() {
+        if(!isInit) {
+            defineCollectors();
+            isInit = true;
+        }
 
     }
 
     public void start() {
-        defineCollectors();
+        collectors.forEach((metric, collector) -> collector.tell(new StartCollectorRequest(), null));
     }
 
     public void stop() {
-        collectors.forEach( (metric, collector) -> collector.tell(new StopCollectorRequest(), null));
+        collectors.forEach((metric, collector) -> collector.tell(new StopCollectorRequest(), null));
     }
 
-    public void monitor(String metric, int interval, int duration) {
+    public void configure(String metric, int interval) {
         ActorRef systemMetricCollector = getOrCreateCollector(metric);
-        systemMetricCollector.tell(new StartCollectorRequest(processId, interval, duration), null);
+        systemMetricCollector.tell(new ConfigureCollectorRequest(processId, interval), null);
+    }
+
+    public void kill() {
+        collectors.forEach((metric, collector) -> collector.tell(new KillCollectorRequest(), null));
     }
 
 
@@ -64,7 +78,9 @@ public class ProcessMonitor {
             return collectors.get(metric);
         } else {
             if(collectorDefinitions.containsKey(metric)) {
-                ActorRef collector = ProfilerWorker.actorSystem.actorOf(Props.create(collectorDefinitions.get(metric)), metric + "-collector");
+                ActorRef collector = ProfilerWorker.actorSystem.actorOf(Props.create(collectorDefinitions.get(metric)),
+                        processId + "-" + metric + "-collector");
+                collector.tell(new InitCollectorRequest(processId), null);
                 collectors.put(metric, collector);
                 return collector;
             } else {
@@ -80,4 +96,7 @@ public class ProcessMonitor {
         collectorDefinitions.put("os.network.volume", NetworkOSMetricCollector.class);
     }
 
+    public boolean isInit() {
+        return isInit;
+    }
 }

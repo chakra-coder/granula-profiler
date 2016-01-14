@@ -7,8 +7,9 @@ import java.util.Map;
 
 public class JobMonitor {
 
-    Map<Integer, ProcessMonitor> processMonitors;
     String jobId;
+    Map<Integer, ProcessMonitor> processMonitors;
+    boolean isInit;
 
     public JobMonitor(String jobId) {
         this.jobId = jobId;
@@ -22,20 +23,34 @@ public class JobMonitor {
     }
 
     public void init() {
-
+        if(!isInit) {
+            processMonitors = new HashMap<>();
+            isInit = true;
+        }
     }
 
     public void start() {
-        processMonitors = new HashMap<>();
+
     }
 
     public void monitor(int processId, String metric, int interval, int duration) {
         ProcessMonitor processMonitor = getOrCreateProcessMonitor(processId);
-        processMonitor.monitor(metric, interval, duration);
+        processMonitor.configure(metric, interval);
     }
 
     public void stop() {
-        processMonitors.forEach( (processId, processMonitor) -> processMonitor.stop() );
+        processMonitors.forEach((processId, processMonitor) -> processMonitor.stop());
+    }
+
+    public void kill() {
+        processMonitors.forEach((processId, processMonitor) -> {
+            processMonitor.kill();
+            removeProcessMonitor(processId);
+        });
+    }
+
+    private void removeProcessMonitor(int processId) {
+        processMonitors.remove(processId);
     }
 
     private ProcessMonitor getOrCreateProcessMonitor(int processId) {
@@ -47,5 +62,19 @@ public class JobMonitor {
             processMonitors.put(processId, processMonitor);
             return processMonitor;
         }
+    }
+
+    public void initProcessMonitor(int processId) {
+        ProcessMonitor processMonitor = getOrCreateProcessMonitor(processId);
+        processMonitor.init();
+    }
+
+    public void configureProcessMonitor(int processId, String metric, int interval) {
+        ProcessMonitor processMonitor = getOrCreateProcessMonitor(processId);
+        processMonitor.configure(metric, interval);
+    }
+
+    public boolean isInit() {
+        return isInit;
     }
 }

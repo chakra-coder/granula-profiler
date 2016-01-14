@@ -22,8 +22,8 @@ public class NetworkOSMetricCollector extends SystemMetricCollector{
     }
 
     @Override
-    public void start(int processId, int interval, long duration) {
-        super.start(processId, interval, duration);
+    public void init(int processId) {
+        super.init(processId);
         createCache();
     }
 
@@ -86,7 +86,7 @@ public class NetworkOSMetricCollector extends SystemMetricCollector{
 
     public static void main(String[] args) {
         NetworkOSMetricCollector networkOSMetricCollector = new NetworkOSMetricCollector();
-        networkOSMetricCollector.start(2947, 1000, 100000);
+        networkOSMetricCollector.init(2947);
         // 0.11ms for 1000 iteration (this operation is repeated per monitoring interval. start() and stop() once is not more efficient.
         networkOSMetricCollector.stop();
     }

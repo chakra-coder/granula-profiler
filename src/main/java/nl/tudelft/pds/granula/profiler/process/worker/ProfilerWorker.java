@@ -64,6 +64,16 @@ public class ProfilerWorker {
         }
     }
 
+    public void initJobMonitor(String jobId) {
+        JobMonitor jobMonitor = getOrCreateJobMonitor(jobId);
+        jobMonitor.init();
+    }
+
+    public void initProcessMonitor(String jobId, int processId) {
+        JobMonitor jobMonitor = getOrCreateJobMonitor(jobId);
+        jobMonitor.initProcessMonitor(processId);
+    }
+
     public void monitor(String jobId, int processId, String metric, int interval, int duration) {
         JobMonitor jobMonitor = getOrCreateJobMonitor(jobId);
         jobMonitor.monitor(processId, metric, interval, duration);

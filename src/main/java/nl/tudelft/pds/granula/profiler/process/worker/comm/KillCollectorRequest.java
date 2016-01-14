@@ -5,9 +5,9 @@ import nl.tudelft.pds.granula.profiler.comm.message.Request;
 /**
  * Created by wlngai on 1/9/16.
  */
-public class StartCollectorRequest implements Request {
+public class KillCollectorRequest implements Request {
 
-    public StartCollectorRequest() {
+    public KillCollectorRequest() {
     }
 
     String message;

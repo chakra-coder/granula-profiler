@@ -7,18 +7,14 @@ import java.io.RandomAccessFile;
 import java.util.concurrent.atomic.AtomicLong;
 
 import akka.actor.Cancellable;
-import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
-import nl.tudelft.pds.granula.profiler.process.worker.comm.CollectCollectorRequest;
-import nl.tudelft.pds.granula.profiler.process.worker.comm.StartCollectorRequest;
-import nl.tudelft.pds.granula.profiler.process.worker.comm.StopCollectorRequest;
+import nl.tudelft.pds.granula.profiler.process.worker.comm.*;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.IOUtils;
 import scala.concurrent.duration.Duration;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 public abstract class SystemMetricCollector extends UntypedActor {
 
@@ -26,33 +22,34 @@ public abstract class SystemMetricCollector extends UntypedActor {
 
     int processId;
     int interval;
-    AtomicLong stopTime;
     RandomAccessFile reader;
     Cancellable collectAction;
 
-    public void start(int processId, int interval, long duration) {
+    public void init(int processId) {
         this.processId = processId;
-        this.interval = interval;
-        this.stopTime = new AtomicLong(System.currentTimeMillis() + duration);
         try {
             reader = new RandomAccessFile(decidePath(), "r");
             isRunning = true;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+    }
 
-        collectAction = getContext().system().scheduler().schedule(
-                Duration.Zero(), Duration.create(interval, MILLISECONDS), getSelf(),
-                new CollectCollectorRequest(), getContext().dispatcher(), getSelf());
+    public void start() {
+        isRunning = true;
+        startRoutine();
     }
 
     public abstract String decidePath();
 
     public void stop() {
-        collectAction.cancel();
-        stopTime.getAndSet(Long.MIN_VALUE);
-        IOUtils.closeQuietly(reader);
+        stopRoutine();
         isRunning = false;
+    }
+
+    public void kill() {
+        IOUtils.closeQuietly(reader);
+        getContext().stop(getSelf());
     }
 
     public abstract void collectOnce() throws IOException;
@@ -60,14 +57,10 @@ public abstract class SystemMetricCollector extends UntypedActor {
     public void collect() {
         System.out.println("reached"+ System.currentTimeMillis());
         try {
-            if(!(System.currentTimeMillis() > stopTime.get())) {
                 reader.seek(0);
                 collectOnce();
-            } else {
-                collectAction.cancel();
-            }
-
         } catch (IOException e) {
+            stopRoutine();
             isRunning = false;
             e.printStackTrace();
         }
@@ -97,64 +90,43 @@ public abstract class SystemMetricCollector extends UntypedActor {
     @Override
     public void onReceive(Object message) throws Exception {
 
-        if (message instanceof StartCollectorRequest) {
-            StartCollectorRequest startCollectorRequest = (StartCollectorRequest) message;
+        if (message instanceof ConfigureCollectorRequest) {
+            ConfigureCollectorRequest configureCollectorRequest = (ConfigureCollectorRequest) message;
+            interval = configureCollectorRequest.getInterval();
             if(isRunning) {
-                stopTime.set(startCollectorRequest.getDuration() + System.currentTimeMillis());
-                interval = startCollectorRequest.getInterval();
-                collectAction.cancel();
-                collectAction = getContext().system().scheduler().schedule(
-                        Duration.Zero(), Duration.create(interval, MILLISECONDS), getSelf(),
-                        new CollectCollectorRequest(), getContext().dispatcher(), getSelf());
-            } else {
-                start(startCollectorRequest.getProcessId(), startCollectorRequest.getInterval(), startCollectorRequest.getDuration());
+                stopRoutine();
+                startRoutine();
             }
-
+        } else if (message instanceof KillCollectorRequest) {
+            KillCollectorRequest killCollectorRequest = (KillCollectorRequest) message;
+            kill();
         } else if (message instanceof StopCollectorRequest) {
             StopCollectorRequest stopCollectorRequest = (StopCollectorRequest) message;
             stop();
-            getContext().stop(getSelf());
+        } else if(message instanceof StartCollectorRequest) {
+            start();
         } else if (message instanceof CollectCollectorRequest) {
             CollectCollectorRequest collectCollectorRequest = (CollectCollectorRequest) message;
             collect();
+        } else if (message instanceof InitCollectorRequest) {
+            InitCollectorRequest initCollectorRequest = (InitCollectorRequest) message;
+            init(initCollectorRequest.getProcessId());
         } else {
             unhandled(message);
         }
     }
 
-
-    private float readUsage() {
-        try {
-            RandomAccessFile reader = new RandomAccessFile("/proc/stat", "r");
-            String load = reader.readLine();
-
-            String[] toks = load.split(" +");  // Split on one or more spaces
-
-            long idle1 = Long.parseLong(toks[4]);
-            long cpu1 = Long.parseLong(toks[2]) + Long.parseLong(toks[3]) + Long.parseLong(toks[5])
-                    + Long.parseLong(toks[6]) + Long.parseLong(toks[7]) + Long.parseLong(toks[8]);
-
-            try {
-                Thread.sleep(360);
-            } catch (Exception e) {}
-
-            reader.seek(0);
-            load = reader.readLine();
-            reader.close();
-
-            toks = load.split(" +");
-
-            long idle2 = Long.parseLong(toks[4]);
-            long cpu2 = Long.parseLong(toks[2]) + Long.parseLong(toks[3]) + Long.parseLong(toks[5])
-                    + Long.parseLong(toks[6]) + Long.parseLong(toks[7]) + Long.parseLong(toks[8]);
-
-            return (float)(cpu2 - cpu1) / ((cpu2 + idle2) - (cpu1 + idle1));
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
+    public void stopRoutine() {
+        if(collectAction != null) {
+            collectAction.cancel();
         }
+    }
 
-        return 0;
+    private void startRoutine() {
+        stopRoutine();
+        collectAction = getContext().system().scheduler().schedule(
+                Duration.Zero(), Duration.create(interval, MILLISECONDS), getSelf(),
+                new CollectCollectorRequest(), getContext().dispatcher(), getSelf());
     }
 
     public boolean isRunning() {

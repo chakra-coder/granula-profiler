@@ -18,12 +18,12 @@ public class CpuProcessMetricCollector extends  SystemMetricCollector{
     }
 
     @Override
-    public void start(int processId, int interval, long duration) {
+    public void init(int processId) {
         cpuTimes = new ArrayList<>();
         // 140ms for first iteration (this operation is only executed once per process
         kernelClockTick = Long.parseLong(collectFromExecution("getconf", "CLK_TCK"));
 
-        super.start(processId, interval, duration);
+        super.init(processId);
     }
 
     @Override
@@ -54,7 +54,7 @@ public class CpuProcessMetricCollector extends  SystemMetricCollector{
     public static void main(String[] args) {
 
         CpuProcessMetricCollector cpuProcessMetricCollector = new CpuProcessMetricCollector();
-        cpuProcessMetricCollector.start(5153, 1000, System.currentTimeMillis() + 100000);
+        cpuProcessMetricCollector.init(5153);
         // 0.11ms for 1000 iteration (this operation is repeated per monitoring interval. start() and stop() once is not more efficient.
         cpuProcessMetricCollector.stop();
         System.out.println("count = " + cpuProcessMetricCollector.count);
