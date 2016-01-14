@@ -63,6 +63,8 @@ public abstract class SystemMetricCollector extends UntypedActor {
             if(!(System.currentTimeMillis() > stopTime.get())) {
                 reader.seek(0);
                 collectOnce();
+            } else {
+                collectAction.cancel();
             }
 
         } catch (IOException e) {

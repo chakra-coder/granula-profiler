@@ -21,6 +21,10 @@ public class JobMonitor {
         jobMonitor.monitor(2974, "os.network.volume", 1000, 10000);
     }
 
+    public void init() {
+
+    }
+
     public void start() {
         processMonitors = new HashMap<>();
     }

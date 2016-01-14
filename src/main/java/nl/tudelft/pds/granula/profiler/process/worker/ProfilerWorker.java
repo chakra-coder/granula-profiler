@@ -65,10 +65,7 @@ public class ProfilerWorker {
     }
 
     public void monitor(String jobId, int processId, String metric, int interval, int duration) {
-        System.out.println("hi" + System.currentTimeMillis());
         JobMonitor jobMonitor = getOrCreateJobMonitor(jobId);
         jobMonitor.monitor(processId, metric, interval, duration);
-
-        System.out.println("hi again");
     }
 }
