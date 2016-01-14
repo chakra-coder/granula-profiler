@@ -71,11 +71,11 @@ public class ProfilerWorker {
 
     public void initProcessMonitor(String jobId, int processId) {
         JobMonitor jobMonitor = getOrCreateJobMonitor(jobId);
-        jobMonitor.initProcessMonitor(processId);
+        jobMonitor.monitorProcess(processId);
     }
 
-    public void monitor(String jobId, int processId, String metric, int interval, int duration) {
+    public void monitor(String jobId, int processId, String metric, int interval) {
         JobMonitor jobMonitor = getOrCreateJobMonitor(jobId);
-        jobMonitor.monitor(processId, metric, interval, duration);
+        jobMonitor.configure(processId, metric, interval);
     }
 }

@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.concurrent.atomic.AtomicLong;
 
 import akka.actor.Cancellable;
 import akka.actor.UntypedActor;
@@ -29,13 +28,15 @@ public abstract class SystemMetricCollector extends UntypedActor {
         this.processId = processId;
         try {
             reader = new RandomAccessFile(decidePath(), "r");
-            isRunning = true;
+            isRunning = false;
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            System.out.println(String.format("Cannot read file %s. Check if process with id %s exists", decidePath(), processId));
+            malFunction();
         }
     }
 
     public void start() {
+        System.out.println(String.format("%s is starting its collection routine", getName()));
         isRunning = true;
         startRoutine();
     }
@@ -54,15 +55,14 @@ public abstract class SystemMetricCollector extends UntypedActor {
 
     public abstract void collectOnce() throws IOException;
 
-    public void collect() {
-        System.out.println("reached"+ System.currentTimeMillis());
+    public void routine() {
         try {
                 reader.seek(0);
                 collectOnce();
-        } catch (IOException e) {
-            stopRoutine();
-            isRunning = false;
-            e.printStackTrace();
+        } catch (IOException | NullPointerException e) {
+            System.out.println(String.format("%s cannot execute its collection routine due to %s",
+                    getName(), e.getClass().getSimpleName()));
+            malFunction();
         }
     }
 
@@ -87,50 +87,72 @@ public abstract class SystemMetricCollector extends UntypedActor {
         return output;
     }
 
+    private void configure(int interval) {
+        System.out.println(String.format("%s configured its collection routine to execute at interval %s",
+                getName(), interval));
+        this.interval = interval;
+        if(isRunning) {
+            restartRoutine();
+        }
+    }
+
     @Override
     public void onReceive(Object message) throws Exception {
 
-        if (message instanceof ConfigureCollectorRequest) {
+        if (message instanceof InitCollectorRequest) {
+            InitCollectorRequest initCollectorRequest = (InitCollectorRequest) message;
+            init(initCollectorRequest.getProcessId());
+        } else if(message instanceof StartCollectorRequest) {
+            start();
+        } else if (message instanceof ConfigureCollectorRequest) {
             ConfigureCollectorRequest configureCollectorRequest = (ConfigureCollectorRequest) message;
-            interval = configureCollectorRequest.getInterval();
-            if(isRunning) {
-                stopRoutine();
-                startRoutine();
-            }
-        } else if (message instanceof KillCollectorRequest) {
-            KillCollectorRequest killCollectorRequest = (KillCollectorRequest) message;
-            kill();
+            configure(configureCollectorRequest.getInterval());
         } else if (message instanceof StopCollectorRequest) {
             StopCollectorRequest stopCollectorRequest = (StopCollectorRequest) message;
             stop();
-        } else if(message instanceof StartCollectorRequest) {
-            start();
-        } else if (message instanceof CollectCollectorRequest) {
-            CollectCollectorRequest collectCollectorRequest = (CollectCollectorRequest) message;
-            collect();
-        } else if (message instanceof InitCollectorRequest) {
-            InitCollectorRequest initCollectorRequest = (InitCollectorRequest) message;
-            init(initCollectorRequest.getProcessId());
-        } else {
+        } else if (message instanceof KillCollectorRequest) {
+            KillCollectorRequest killCollectorRequest = (KillCollectorRequest) message;
+            kill();
+        } else if (message instanceof RoutineCollectorRequest) {
+            RoutineCollectorRequest routineCollectorRequest = (RoutineCollectorRequest) message;
+            routine();
+        }  else {
             unhandled(message);
         }
     }
 
-    public void stopRoutine() {
+    private void stopRoutine() {
+        System.out.println(String.format("%s stopped its collection routine.", getName()));
         if(collectAction != null) {
             collectAction.cancel();
         }
     }
 
     private void startRoutine() {
-        stopRoutine();
+        if(collectAction != null) {
+            collectAction.cancel();
+        }
         collectAction = getContext().system().scheduler().schedule(
                 Duration.Zero(), Duration.create(interval, MILLISECONDS), getSelf(),
-                new CollectCollectorRequest(), getContext().dispatcher(), getSelf());
+                new RoutineCollectorRequest(), getContext().dispatcher(), getSelf());
+    }
+
+    private void restartRoutine() {
+        stopRoutine();
+        startRoutine();
+    }
+
+    private void malFunction() {
+        System.out.println(String.format("%s reported to be malfunctioning.", getName()));
+        stop();
     }
 
     public boolean isRunning() {
         return isRunning;
+    }
+
+    public String getName() {
+        return this.getClass().getSimpleName();
     }
 }
 
